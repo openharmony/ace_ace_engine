@@ -21,6 +21,7 @@
 
 #include "base/log/log.h"
 #include "base/utils/string_utils.h"
+#include "core/components/theme/parse_theme_uint32.h"
 #include "base/utils/system_properties.h"
 #include "core/components/theme/theme_constants.h"
 #include "core/components/theme/theme_constants_defines.h"
@@ -67,7 +68,9 @@ IdParseResult ThemeUtils::ParseThemeIdReference(const std::string& str, const Re
     if (str.size() > THEME_ID_MIN_SIZE && std::regex_match(str, matches, THEME_ID_REGEX) &&
         matches.size() == THEME_ID_MATCH_SIZE) {
         // Platform style id is no more than 32 bit.
-        result.id = static_cast<uint32_t>(std::stoul(matches[1].str()));
+        if (!ParseThemeUint32(matches[1].str(), result.id)) {
+            return result;
+        }
         result.parseSuccess = true;
         result.isIdRef = true;
         return result;
@@ -82,14 +85,22 @@ IdParseResult ThemeUtils::ParseThemeIdReference(const std::string& str, const Re
     if (str.size() > OHOS_ID_MIN_SIZE && std::regex_match(str, matches, OHOS_ID_REGEX) &&
         matches.size() == THEME_ID_MATCH_SIZE) {
         // Platform style id is no more than 32 bit.
-        result.id = static_cast<uint32_t>(std::stoul(matches[1].str())) + SYSTEM_RES_ID_START;
+        uint32_t ohosId = 0;
+        if (!ParseThemeUint32(matches[1].str(), ohosId)) {
+            return result;
+        }
+        result.id = ohosId + SYSTEM_RES_ID_START;
         result.parseSuccess = true;
         result.isIdRef = true;
         return result;
     }
     if (str.size() > SYS_TYPE_RES_ID_MIN_SIZE && std::regex_match(str, matches, SYS_TYPE_RES_ID_REGEX) &&
         matches.size() == TYPE_RESOURCE_MATCH_SIZE) {
-        result.id = static_cast<uint32_t>(std::stoul(matches[2].str())) + SYSTEM_RES_ID_START;
+        uint32_t sysId = 0;
+        if (!ParseThemeUint32(matches[2].str(), sysId)) {
+            return result;
+        }
+        result.id = sysId + SYSTEM_RES_ID_START;
         result.parseSuccess = true;
         result.isIdRef = true;
         return result;
@@ -153,7 +164,10 @@ std::string ThemeUtils::ProcessImageSource(const std::string& imageSrc, const Re
         resName = matches[1].str();
     }
     if (std::regex_match(imageSrc, matches, SYS_MEDIA_RES_ID_REGEX) && matches.size() == MEDIA_RESOURCE_MATCH_SIZE) {
-        resId = static_cast<uint32_t>(std::stoul(matches[1].str())) + SYSTEM_RES_ID_START;
+        uint32_t mediaId = 0;
+        if (ParseThemeUint32(matches[1].str(), mediaId)) {
+            resId = mediaId + SYSTEM_RES_ID_START;
+        }
     }
     // not a image from global global resource manager subsystem, no need process.
     if (resId == 0 && resName.empty()) {
